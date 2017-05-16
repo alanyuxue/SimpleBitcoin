@@ -6,7 +6,7 @@ import java.util.ArrayList;
 
 public class Server{
 
-    ArrayList<ClientThread> clientList;
+    private ArrayList<ClientThread> clientList;
     private ServerSocket serverSocket;
     //SSLServerSocket serverSocket;
 
@@ -27,9 +27,10 @@ public class Server{
                 Socket clientSocket = serverSocket.accept();
                 //SSLSocket clientSocket = (SSLSocket) serverSocket.accept();
 
-                ClientThread newClient = new ClientThread(clientSocket);
+                ClientThread newClient = new ClientThread(clientSocket, this);
+                newClient.setDaemon(true);
                 newClient.start();
-                clientList.add(newClient);
+                addToClientList(newClient);
             } catch (IOException e) {
                 e.printStackTrace();
                 break;
@@ -37,10 +38,16 @@ public class Server{
         }
     }
 
-    private void broadcast(String message) {
+    private synchronized void addToClientList(ClientThread client) {
+        clientList.add(client);
+    }
+    private synchronized void removeFromClientList (ClientThread client) {
+        clientList.remove(client);
+    }
+    private synchronized void broadcast(String message) {
         for(ClientThread client: clientList) {
             client.out.println(message);
-            client.out.flush();
+            //client.out.flush();
         }
     }
 
@@ -48,17 +55,20 @@ public class Server{
         private InputStream in;    //used to store input stream from socket
         private BufferedReader readIn;    //used to read input stream
         private PrintWriter out;    //used to output stream
+        private Server server;
         private Socket clientSocket;
         //SSLSocket clientSocket;
 
-        private ClientThread (Socket socket) {
-            //public clientThread (SSLSocket socket) {
+        private ClientThread (Socket socket, Server server) {
+        //public clientThread (SSLSocket socket, Server server) {
+            super("ClientThread");
+            this.server = server;
             clientSocket = socket;
-            System.out.println("\nNew client connected.");
         }
 
         public void run() {
             try {
+                System.out.println("\nNew client connected.");
                 in = clientSocket.getInputStream();
                 readIn = new BufferedReader(new InputStreamReader(in));
                 out = new PrintWriter(clientSocket.getOutputStream(), true);
@@ -69,7 +79,6 @@ public class Server{
 
             String messageReceived;
             while (true) {
-                //System.out.println("in while loop");
                 try {
                     messageReceived = readIn.readLine();
                     System.out.println("\nNew message received: " + messageReceived);
@@ -78,6 +87,7 @@ public class Server{
                         out.flush();
                         System.out.println("Connection is closed.");
                         clientSocket.close();
+                        removeFromClientList(this);
                         return;
                     } else {
                         System.out.println("Calculating proof of work...");
@@ -91,6 +101,7 @@ public class Server{
                         Miner miner = new Miner(message, timestamp);
                         try{
                             miner.proof();
+                            server.broadcast("Transaction approved! " + messageReceived);
                         } catch (NoSuchAlgorithmException e){
                             e.printStackTrace();
                             return;

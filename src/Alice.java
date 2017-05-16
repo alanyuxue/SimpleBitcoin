@@ -37,6 +37,9 @@ public class Alice {
                     System.out.println("You are sending " + userInput + " chriscoins to Bob.");
                     //add unix timestamp to message
                     out.println("Alice is sending "+ userInput +" chriscoins to Bob timestamp: "+ System.currentTimeMillis() / 1000L);
+                    //wait for server responding to the message
+                    System.out.println("Server: " + in.readLine());
+                    //wait for transaction result from server
                     System.out.println("Server: " + in.readLine());
                 } else {
                     System.out.println("Invalid input. Please enter a number or QUIT to disconnect from server.");
