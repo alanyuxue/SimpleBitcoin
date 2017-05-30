@@ -1,4 +1,8 @@
 .DS_Store
+AliceAccount.txt
+BobAccount.txt
+aliceAccountMiner.txt
+bobAccountMiner.txt
 
 # IntelliJ project files
 .idea/
