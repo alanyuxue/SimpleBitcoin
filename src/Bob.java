@@ -15,8 +15,8 @@ public class Bob {
             System.err.println("Usage: java Bob <host name> <port number>");
             System.exit(1);
         }
-        String hostName = "localhost"; //args[0];
-        int portNumber = 1234; //Integer.parseInt(args[1]);
+        String hostName = args[0];
+        int portNumber = Integer.parseInt(args[1]);
 
         System.setProperty("javax.net.ssl.trustStore", "serverkeystore");
         System.setProperty("javax.net.ssl.trustStorePassword", "123456");
@@ -33,9 +33,12 @@ public class Bob {
             while(true) {
                 String receivedMessage = in.readLine();
                 String isSuccessful = receivedMessage.split(" amount: ")[0];
+                //remove all the Unicode characters in the string to make sure .equals() method works
+                isSuccessful = isSuccessful.replaceAll("\\P{Print}","");
+
                 int transferAmount = Integer.parseInt(receivedMessage.split(" amount: ")[1]);
                 System.out.println("Server: " + receivedMessage);
-                if (isSuccessful.equals("Transfer Successful")) {
+                if (isSuccessful.equals("Transaction Successful")) {
                     bobAccount.receiveMoney(transferAmount);
                 }
                 /*

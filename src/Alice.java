@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.*;
 import javax.net.ssl.*;
+
 public class Alice {
 
     /**
@@ -49,9 +50,11 @@ public class Alice {
                     //wait for transaction result from server
                     String receivedMessage = in.readLine();
                     String isSuccessful = receivedMessage.split(" amount: ")[0];
+                    //remove all the Unicode characters in the string to make sure .equals() method works
+                    isSuccessful = isSuccessful.replaceAll("\\P{Print}","");
 
                     System.out.println("Server: " + receivedMessage);
-                    if(isSuccessful.equals("Transfer Successful")){
+                    if(isSuccessful.equals("Transaction Successful")){
                         //DigitalWallet.transferFunds(DigitalWallet.getAliceAccount(), DigitalWallet.getBobAccount(), Integer.parseInt(userInput));
                         aliceAccount.sendMoney(Integer.parseInt(userInput));
                         System.out.println("Your current balance is "+aliceAccount.readFinalBalance());
