@@ -1,3 +1,4 @@
+import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.nio.charset.StandardCharsets;
@@ -5,20 +6,28 @@ import java.io.*;
 import java.lang.*;
 
 public class Miner{
+    private static String PATH = "";
+
     private static String message;
-    private static String date;
-    private static int difficulty = 4;
-    private static String zeroString = computeZeroString(difficulty);
+    private static String timeStamp;
+    //Optimal Difficulty 16777216
+    private static int diffDivisor = 16777216;
+    private static String prevHash = "0"; // Probably should put this in for practical purposes but don't really need to.
+    static final BigInteger maxDiff = maxDiffCalc(); //max difficulty
+    static BigInteger targetDiff = maxDiff.divide(BigInteger.valueOf(diffDivisor)); //current difficulty
+
+    //private static int date = 170501; //For testing
+    private static int bits = 4;
+    private static String zeroString = computeZeroString(bits);
+    private static int maxNonce = Integer.MAX_VALUE;
     private static int nonce = 0;
     private static int counter = 0;
 
-    private static String PATH = ""; ///FILE Location
-
     public Miner(String msg, String time) {
         message = msg;
-        date = time;
+        timeStamp = time;
     }
-    // Completes a SHA-256 Hash of the string input
+    ///////////////////////// Proof Of Work Start /////////////////////////
     private static String hash(String input) throws NoSuchAlgorithmException
     {
         String result = "";
@@ -41,19 +50,20 @@ public class Miner{
         return result;
     }
 
-
-    //initiates the proof of work
+    /**
+     * Returns a double for mins taken - ONLY FOR TESTING using the DiffSetter class to get avg time.
+     */
     public void proof() throws NoSuchAlgorithmException
     {
-        long startTime = System.currentTimeMillis();
-        while(true){
-            String testString =  date + message + nonce;
+        long startTime = System.nanoTime();
+        while(nonce <= maxNonce){
+            String testString =  timeStamp + message + nonce;
 
             try{
                 String hashcode = hash(testString);
 
-                if(hashcode.substring(0, difficulty).equals(zeroString)){
-                    System.out.println("\nNonce: "+ nonce + "\nFound after " + counter + " attempts");
+                if(hashcode.substring(0,bits).equals(zeroString) && checkDifficulty(hashcode)){
+                    System.out.printf("\n\nNonce: "+ nonce + "\nFound after " + counter + " attempts");
                     break;
                 }
             }
@@ -61,16 +71,25 @@ public class Miner{
                 throw new NoSuchAlgorithmException("Failure");
             }
 
+            if(nonce + 1 > maxNonce){
+                incrementTimeStamp();
+                nonce = -1; //resets nonce
+            }
+
             counter++;
             nonce++;
-        }
-        long endTime = System.currentTimeMillis();
 
-        System.out.println("\nDuration : " + (endTime - startTime)+" milli seconds" + "\nTransaction finished!");
+        }
+        long endTime = System.nanoTime();
+
+        double duration = ((endTime - startTime)/1000000)/60000;
+
+        System.out.println("\nDuration : " + duration + " mins.");
+
+        //return duration;
     }
 
-    //Create a zero string to match difficulty
-    private static String computeZeroString(int d)
+    static private String computeZeroString(int d)
     {
         String bits = "";
 
@@ -80,19 +99,59 @@ public class Miner{
 
         return bits;
     }
-    //Save data to a file at PATH
-    public static void saveData(int nonce){
+
+    static private boolean checkDifficulty(String hash)
+    {
+        BigInteger hex1 = new BigInteger(hash, 16);
+
+        if(hex1.compareTo(targetDiff) > 0){
+            return false;
+        }
+        else{
+            return true;
+        }
+    }
+
+    static private BigInteger maxDiffCalc()
+    {
+        BigInteger i = BigInteger.valueOf((long)Math.pow(2, 32));
+        i = i.pow(8);
+        return i;
+    }
+
+    /*
+    static private String getTimeStamp(int date)
+    {
+        String tS = Integer.toString(date);
+        return tS;
+    }
+
+    static private void incrementTimeStamp()
+    {
+        date++;
+        timeStamp = getTimeStamp(date);
+    }
+    */
+    static private void incrementTimeStamp()
+    {
+        timeStamp = ""+(Integer.parseInt(timeStamp) + 1);
+    }
+///////////////////////// Proof Of Work Finish /////////////////////////
 
 
-        File file = new File(PATH);
 
+
+///////////////////////// Verification Start /////////////////////////
+
+    //UPDATES LOCAL SAVE OF CLIENT ACCOUNT
+    public static void saveClientAccounts(String accountName, int balance){
+
+        File file = new File(PATH+accountName+".txt");
         FileWriter writer = null;
-
-        String contentToSave = Integer.toString(nonce);
-
         try{
             writer = new FileWriter(file, true);
-            writer.append(contentToSave+"\n");
+            writer.append("Account Name: " + accountName + "\n");
+            writer.append("Balance: " + balance + "\n");
             writer.close();
         }
         catch (Exception e){
@@ -101,22 +160,46 @@ public class Miner{
 
     }
 
-    //Read data from a file
-    public static void readData(){
+    //RETURNS THE FINAL BALANCE OF AN ACCOUNT
+    public static int readFinalBalance(String accountName){
 
-        File file = new File(PATH);
+        File file = new File(PATH + accountName + ".txt");
 
         FileReader reader = null;
 
         String line;
+        String tempLine = "";
 
         try{
             reader = new FileReader(file);
             BufferedReader bufReader = new BufferedReader(reader);
+            int lineCounter = 1;
             while((line = (bufReader.readLine())) != null){
-                // 'line' will read file line by line
+                if((lineCounter%2)==0){
+
+                    tempLine = "";
+
+                    for(int i = 9; i < line.length(); i++){
+                        tempLine = tempLine + line.charAt(i);
+                    }
+                }
+                lineCounter++;
             }
-        }
-        catch(Exception e){}
+
+        } catch(Exception e){}
+
+        if(tempLine.equals("")){return 0;}
+
+        return Integer.parseInt(tempLine);
+
     }
+
+    //COMPARES THE BALANCE COMMUNICATED BY THE CLIENT TO WHAT IS SAVED BY THE MINER
+    public static boolean accountBalanceVerification(String accountName, int allegedBalance){
+
+        return (readFinalBalance(accountName) == allegedBalance);
+
+    }
+
+//////////////////// Verification Finished ////////////////////////////
 }
