@@ -1,7 +1,7 @@
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.io.*;
 import java.lang.*;
 
@@ -34,7 +34,7 @@ public class Miner{
 
         try{
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte hash[] = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            byte hash[] = digest.digest(input.getBytes("UTF-8"));
             StringBuffer hexString = new StringBuffer();
 
             for(int i = 0; i < hash.length; i++){
@@ -45,6 +45,8 @@ public class Miner{
         }
         catch(NoSuchAlgorithmException e){
             throw new NoSuchAlgorithmException("Failure");
+        } catch(Exception e){
+            e.printStackTrace();
         }
 
         return result;
