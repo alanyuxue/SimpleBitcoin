@@ -19,7 +19,7 @@ public class Alice {
         int portNumber = Integer.parseInt(args[1]);
         System.setProperty("javax.net.ssl.trustStore", "serverkeystore");
         System.setProperty("javax.net.ssl.trustStorePassword", "123456");
-        Account aliceAccount = new Account("AliceAccount",100);
+        Account aliceAccount = new Account("AliceAccount");
 
         try {
             //Socket socket = new Socket(hostName, portNumber);
@@ -32,32 +32,38 @@ public class Alice {
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
             System.out.println("Server connected. Please enter the amount to transfer or QUIT to disconnect from server. \n");
-            System.out.println("Your current balance is "+aliceAccount.readFinalBalance());
+            int balance = aliceAccount.readFinalBalance();
+            System.out.println("Your current balance is "+ balance);
             String userInput;
             while((userInput = stdIn.readLine()) != null) {
-
                 if (userInput.equalsIgnoreCase("QUIT")){
                     out.println("QUIT");
                     System.out.println("Server: " + in.readLine());
                 }
                 //check whether the input is a number
                 else if (userInput.matches("[-+]?\\d*\\.?\\d+")) {
-                    System.out.println("You are sending " + userInput + " Bitcoins to Bob.");
-                    //add unix timestamp to message
-                    out.println(userInput +" timestamp: "+ System.currentTimeMillis() / 1000L);
-                    //wait for server responding to the message
-                    System.out.println("Server: " + in.readLine());
-                    //wait for transaction result from server
-                    String receivedMessage = in.readLine();
-                    String isSuccessful = receivedMessage.split(" amount: ")[0];
-                    //remove all the Unicode characters in the string to make sure .equals() method works
-                    isSuccessful = isSuccessful.replaceAll("\\P{Print}","");
+                    //check balance
+                    int amountSent = Integer.parseInt(userInput);
+                    if (amountSent >=0 && amountSent <= balance) {
+                        System.out.println("You are sending " + userInput + " Bitcoins to Bob.");
+                        //add unix timestamp to message
+                        out.println(userInput +" timestamp: "+ System.currentTimeMillis() / 1000L);
+                        //wait for server responding to the message
+                        System.out.println("Server: " + in.readLine());
+                        //wait for transaction result from server
+                        String receivedMessage = in.readLine();
+                        String isSuccessful = receivedMessage.split(" amount: ")[0];
+                        //remove all the Unicode characters in the string to make sure .equals() method works
+                        isSuccessful = isSuccessful.replaceAll("\\P{Print}","");
 
-                    System.out.println("Server: " + receivedMessage);
-                    if(isSuccessful.equals("Transaction Successful")){
-                        //DigitalWallet.transferFunds(DigitalWallet.getAliceAccount(), DigitalWallet.getBobAccount(), Integer.parseInt(userInput));
-                        aliceAccount.sendMoney(Integer.parseInt(userInput));
-                        System.out.println("Your current balance is "+aliceAccount.readFinalBalance());
+                        System.out.println("Server: " + receivedMessage);
+                        if(isSuccessful.equals("Transaction Successful")){
+                            //DigitalWallet.transferFunds(DigitalWallet.getAliceAccount(), DigitalWallet.getBobAccount(), Integer.parseInt(userInput));
+                            aliceAccount.sendMoney(Integer.parseInt(userInput));
+                            System.out.println("Your current balance is "+aliceAccount.readFinalBalance());
+                        }
+                    } else {
+                        System.out.println("Error: input is less than 0 or not enough balance");
                     }
 
                     /*

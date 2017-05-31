@@ -105,18 +105,23 @@ public class Server{
                         String timestamp = splitMessage[1];
                         Miner miner = new Miner(message, timestamp);
                         int transferAmount = Integer.parseInt(message);
-                        try{
-                            miner.proof();
-                            Miner.saveClientAccounts("aliceAccountMiner", (Miner.readFinalBalance("aliceAccountMiner") - transferAmount));
-                            Miner.saveClientAccounts("bobAccountMiner", (Miner.readFinalBalance("bobAccountMiner") + transferAmount));
-                            System.out.println("\nTransaction Successful amount: " + transferAmount);
-                            server.broadcast("Transaction Successful amount: " + transferAmount);
+                        if (transferAmount >= 0){
+                            try{
+                                miner.proof();
+                                Miner.saveClientAccounts("aliceAccountMiner", (Miner.readFinalBalance("aliceAccountMiner") - transferAmount));
+                                Miner.saveClientAccounts("bobAccountMiner", (Miner.readFinalBalance("bobAccountMiner") + transferAmount));
+                                System.out.println("\nTransaction Successful amount: " + transferAmount);
+                                server.broadcast("Transaction Successful amount: " + transferAmount);
 
-                            //transferRequest = false;
-                        } catch (NoSuchAlgorithmException e){
-                            e.printStackTrace();
-                            return;
+                                //transferRequest = false;
+                            } catch (NoSuchAlgorithmException e){
+                                e.printStackTrace();
+                                return;
+                            }
+                        } else {
+                            System.out.println("transferAmount is less than 0");
                         }
+
                     }
                     /*else {
                         System.out.print("Verification request received\n");

@@ -10,34 +10,12 @@ public class Account {
     public Account(String accountName){
         this.accountName = accountName;
         this.balance = readFinalBalance();
-        File file = new File(PATH + accountName + ".txt");
-        FileWriter writer = null;
-        try{
-            writer = new FileWriter(file, true);
-            writer.append("Account: " + accountName + "\n");
-            writer.append("Opening Balance: " + balance + "\n");
-            writer.close();
-        }
-        catch (Exception e){
-            e.printStackTrace();
-        }
     }
 
     //Initiate Account with Set Balance
     public Account(String accountName, int balance){
         this.accountName = accountName;
         this.balance = balance;
-        File file = new File(PATH + accountName + ".txt");
-        FileWriter writer = null;
-        try{
-            writer = new FileWriter(file, true);
-            writer.append("Account: " + accountName + "\n");
-            writer.append("Opening Balance: " + balance + "\n");
-            writer.close();
-        }
-        catch (Exception e){
-            e.printStackTrace();
-        }
     }
 
     //Save data to a file for a transfer of cash
@@ -105,7 +83,6 @@ public class Account {
                 }
                 lineCounter++;
             }
-
         }
         catch(Exception e){}
 

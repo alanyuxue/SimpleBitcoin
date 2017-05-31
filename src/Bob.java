@@ -21,7 +21,7 @@ public class Bob {
         System.setProperty("javax.net.ssl.trustStore", "serverkeystore");
         System.setProperty("javax.net.ssl.trustStorePassword", "123456");
 
-        Account bobAccount = new Account("BobAccount", 0);
+        Account bobAccount = new Account("BobAccount");
         try {
             SSLSocketFactory sslSocket = (SSLSocketFactory) SSLSocketFactory.getDefault();
             SSLSocket socket = (SSLSocket) sslSocket.createSocket(hostName, portNumber);
@@ -31,6 +31,7 @@ public class Bob {
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             System.out.println("Server connected. Please wait for new transactions.");
             while(true) {
+                System.out.println("Your current balance is "+bobAccount.readFinalBalance());
                 String receivedMessage = in.readLine();
                 String isSuccessful = receivedMessage.split(" amount: ")[0];
                 //remove all the Unicode characters in the string to make sure .equals() method works
