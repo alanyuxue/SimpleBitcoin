@@ -1,5 +1,4 @@
 import java.io.*;
-//import java.net.*;
 import javax.net.ssl.*;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -7,7 +6,6 @@ import java.util.ArrayList;
 public class Server{
 
     private ArrayList<ClientThread> clientList;
-    //private ServerSocket serverSocket;
     private SSLServerSocket serverSocket;
 
     private Server(int portNumber) {
@@ -15,7 +13,6 @@ public class Server{
         System.setProperty("javax.net.ssl.keyStorePassword","123456");
 
         try {
-            //serverSocket = new ServerSocket(portNumber);
             SSLServerSocketFactory sslServerSocketFactory = (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
             serverSocket = (SSLServerSocket) sslServerSocketFactory.createServerSocket(portNumber);
             clientList = new ArrayList<ClientThread>();
@@ -27,9 +24,7 @@ public class Server{
         //create a thread for every client and add it to clientList
         while(true) {
             try{
-                //Socket clientSocket = serverSocket.accept();
                 SSLSocket clientSocket = (SSLSocket) serverSocket.accept();
-
                 ClientThread newClient = new ClientThread(clientSocket, this);
                 newClient.setDaemon(true);
                 newClient.start();
@@ -50,7 +45,6 @@ public class Server{
     private synchronized void broadcast(String message) {
         for(ClientThread client: clientList) {
             client.out.println(message);
-            //client.out.flush();
         }
     }
 
@@ -59,10 +53,8 @@ public class Server{
         private BufferedReader readIn;    //used to read input stream
         private PrintWriter out;    //used to output stream
         private Server server;
-        //private Socket clientSocket;
         private SSLSocket clientSocket;
 
-        //private ClientThread (Socket socket, Server server) {
         public ClientThread (SSLSocket socket, Server server) {
             super("ClientThread");
             this.server = server;
@@ -81,11 +73,15 @@ public class Server{
             }
 
             String messageReceived;
-            //boolean transferRequest = true;
-            while (true) {
-                try {
-                    messageReceived = readIn.readLine();
-                    System.out.println("\nNew message received: " + messageReceived);
+            boolean transferRequest = true;
+	        int transferAmount = 0;
+	        boolean initialise = true;
+            String tHash = "0";
+            while (true){
+		        try {
+		            messageReceived = readIn.readLine();
+			        System.out.println("\nNew message received: " + messageReceived);
+			        String[] splitMessage = messageReceived.split(" timestamp: ");
                     if (messageReceived.equalsIgnoreCase("QUIT")) {
                         out.println("connection closed");
                         out.flush();
@@ -93,53 +89,65 @@ public class Server{
                         clientSocket.close();
                         removeFromClientList(this);
                         return;
-                    } else {//if (transferRequest){
-                        System.out.println("Transfer request received, processing...");
-                        out.println("Processing your transaction. Please wait...");
-                        out.flush();
+                    } else {
+                        if (transferRequest){
+                            messageReceived = readIn.readLine();
+                            String senderName = messageReceived + "Miner";
 
-                        //miner operations
-                        String[] splitMessage = messageReceived.split(" timestamp: ");
-                        //message must be a number, checked in client's code
-                        String message = splitMessage[0];
-                        String timestamp = splitMessage[1];
-                        Miner miner = new Miner(message, timestamp);
-                        int transferAmount = Integer.parseInt(message);
-                        if (transferAmount >= 0){
+                            // set initial balance for sender,
+                            // the amount must match with the digital wallet, otherwise the verification will fail
+                            // use boolean initialise to make sure the balance will only be initialised once.
+                            if (initialise) {
+                                int initialBalance = 1000;
+                                Miner.saveClientAccounts(senderName, Miner.readFinalBalance(senderName)+initialBalance,tHash);
+                                initialise = false;
+                            }
+                            messageReceived = readIn.readLine();
+                            String receiverName = messageReceived + "Miner";
+
+                            System.out.printf("Transfer from: "+senderName + " to " + receiverName + "\n");
+                            System.out.println("Transfer request received, processing...");
+                            out.println("Processing your transaction. Please wait...");
+                            out.flush();
+
+                            //message must be a number, checked in client's code
+                            String message = splitMessage[0];
+                            String timestamp = splitMessage[1];
+                            Miner miner = new Miner(message, timestamp);
+                            transferAmount = Integer.parseInt(message);
+
                             try{
-                                miner.proof();
-                                Miner.saveClientAccounts("aliceAccountMiner", (Miner.readFinalBalance("aliceAccountMiner") - transferAmount));
-                                Miner.saveClientAccounts("bobAccountMiner", (Miner.readFinalBalance("bobAccountMiner") + transferAmount));
+                                Miner.getPreviousHash(senderName);  // gets the previous hash of the sender's ledger from the server (just in case if there are more than 2 accounts transfering money). ***because we aren't doing a real block chain we may not need to have this***
+                                tHash = miner.proof();
+                                Miner.saveClientAccounts(senderName, (Miner.readFinalBalance(senderName) - transferAmount), tHash);
+                                Miner.saveClientAccounts(receiverName, (Miner.readFinalBalance(receiverName) + transferAmount), tHash);
                                 System.out.println("\nTransaction Successful amount: " + transferAmount);
                                 server.broadcast("Transaction Successful amount: " + transferAmount);
-
-                                //transferRequest = false;
+                                transferRequest = false;
                             } catch (NoSuchAlgorithmException e){
                                 e.printStackTrace();
-                                return;
                             }
-                        } else {
-                            System.out.println("transferAmount is less than 0");
                         }
-
+                        if (!transferRequest) {
+                            messageReceived = readIn.readLine();
+                            int allegedBalance = Integer.parseInt(messageReceived);
+                            System.out.printf("Verification request received of %d\n", allegedBalance);
+                            messageReceived = readIn.readLine();
+                            System.out.printf("Verification for account: %s\n",messageReceived);
+                            String fullAccountName = messageReceived + "Miner";
+                            if(Miner.accountBalanceVerification(fullAccountName, allegedBalance)){
+                                System.out.printf("Verification of %d balance is correct\n", allegedBalance);
+                                server.broadcast("Verification Complete");
+                            } else {
+                                System.out.printf("Verification Failure, balance has been altered\n");
+                                server.broadcast("Verification Failed");
+                            }
+                            transferRequest = true;
+                        }
                     }
-                    /*else {
-                        System.out.print("Verification request received\n");
-                        //int allegedBalance = Integer.parseInt(messageReceived);
-                        if(Miner.accountBalanceVerification("aliceAccountMiner", transferAmount)){
-                            System.out.printf("Verification of $%d balance is correct\n", allegedBalance);
-                            server.broadcast("Verification Complete");
-                        }
-                        else{
-                            System.out.printf("Verification Failure, balance has been altered\n");
-                            server.broadcast("Verification Failed");
-                        }
-                        transferRequest = true;
-                    }*/
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    return;
-                }
+		        } catch (IOException e) {
+		            e.printStackTrace();
+		        }
             }
         }
     }

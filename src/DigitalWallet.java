@@ -44,12 +44,11 @@ public class DigitalWallet {
 
         // set initial balance for sender,
         // the amount must match with the server, otherwise the verification will fail
-
         int initialBalance = 1000;
         senderAccount.receiveMoney(initialBalance);
 
+
         try {
-            //Socket socket = new Socket(hostName, portNumber);
             SSLSocketFactory sslSocket = (SSLSocketFactory) SSLSocketFactory.getDefault();
             SSLSocket socket = (SSLSocket) sslSocket.createSocket(hostName, portNumber);
             socket.setEnabledProtocols(new String[]{"SSLv3", "TLSv1"});
@@ -76,7 +75,7 @@ public class DigitalWallet {
                     //check balance
                     int amountSent = Integer.parseInt(userInput);
                     if (amountSent <= balance && amountSent >=0) {
-                        System.out.println("You are sending " + userInput + " Bitcoins to Bob.");
+                        System.out.println("You are sending " + userInput + " Chriscoins to "+receiverName+".");
 
                         //add unix timestamp to message
                         out.println(userInput +" timestamp: "+ System.currentTimeMillis() / 1000L);

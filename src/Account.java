@@ -3,8 +3,8 @@ import java.io.*;
 public class Account {
     private static String PATH = "";
 
-    public String accountName;
-    public int balance = 0;
+    private String accountName;
+    private int balance = 0;
 
     //Initiate Account with Final Balance
     public Account(String accountName){
@@ -44,6 +44,7 @@ public class Account {
         FileWriter writer = null;
 
         try{
+            if (!file.exists()) file.createNewFile();
             writer = new FileWriter(file, true);
             writer.append("Account: " + accountName + "\n");
             writer.append("Opening Balance: " + balance + "\n");
@@ -55,7 +56,6 @@ public class Account {
         catch (Exception e){
             e.printStackTrace();
         }
-
     }
 
     //Read the final balance from an account
@@ -69,6 +69,7 @@ public class Account {
         String tempLine = "";
 
         try{
+            if (!file.exists()) file.createNewFile();
             reader = new FileReader(file);
             BufferedReader bufReader = new BufferedReader(reader);
             int lineCounter = 1;
@@ -84,7 +85,7 @@ public class Account {
                 lineCounter++;
             }
         }
-        catch(Exception e){}
+        catch(Exception e){e.printStackTrace();}
 
         if(tempLine.equals("")){return 0;}
 

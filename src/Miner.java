@@ -1,22 +1,21 @@
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.nio.charset.Charset;
 import java.io.*;
 import java.lang.*;
 
 public class Miner{
-    private static String PATH = "";
+    public static String PATH = "";
 
     private static String message;
     private static String timeStamp;
     //Optimal Difficulty 16777216
     private static int diffDivisor = 16777216;
     private static String prevHash = "0"; // Probably should put this in for practical purposes but don't really need to.
-    static final BigInteger maxDiff = maxDiffCalc(); //max difficulty
-    static BigInteger targetDiff = maxDiff.divide(BigInteger.valueOf(diffDivisor)); //current difficulty
+    private static String currHash = "0";
+    private static final BigInteger maxDiff = maxDiffCalc(); //max difficulty
+    private static BigInteger targetDiff = maxDiff.divide(BigInteger.valueOf(diffDivisor)); //current difficulty
 
-    //private static int date = 170501; //For testing
     private static int bits = 4;
     private static String zeroString = computeZeroString(bits);
     private static int maxNonce = Integer.MAX_VALUE;
@@ -45,7 +44,7 @@ public class Miner{
         }
         catch(NoSuchAlgorithmException e){
             throw new NoSuchAlgorithmException("Failure");
-        } catch(Exception e){
+        }catch(Exception e){
             e.printStackTrace();
         }
 
@@ -55,16 +54,17 @@ public class Miner{
     /**
      * Returns a double for mins taken - ONLY FOR TESTING using the DiffSetter class to get avg time.
      */
-    public void proof() throws NoSuchAlgorithmException
+    public String proof() throws NoSuchAlgorithmException
     {
         long startTime = System.nanoTime();
         while(nonce <= maxNonce){
-            String testString =  timeStamp + message + nonce;
+            String testString =  prevHash + timeStamp + message + nonce;
 
             try{
                 String hashcode = hash(testString);
 
                 if(hashcode.substring(0,bits).equals(zeroString) && checkDifficulty(hashcode)){
+                    currHash = hashcode;
                     System.out.printf("\n\nNonce: "+ nonce + "\nFound after " + counter + " attempts");
                     break;
                 }
@@ -88,7 +88,7 @@ public class Miner{
 
         System.out.println("\nDuration : " + duration + " mins.");
 
-        //return duration;
+        return currHash;
     }
 
     static private String computeZeroString(int d)
@@ -121,38 +121,57 @@ public class Miner{
         return i;
     }
 
-    /*
-    static private String getTimeStamp(int date)
-    {
-        String tS = Integer.toString(date);
-        return tS;
-    }
-
-    static private void incrementTimeStamp()
-    {
-        date++;
-        timeStamp = getTimeStamp(date);
-    }
-    */
     static private void incrementTimeStamp()
     {
         timeStamp = ""+(Integer.parseInt(timeStamp) + 1);
     }
+
+    static public void getPreviousHash(String accountName)
+    {
+        File file = new File(PATH + accountName + ".txt");
+
+        FileReader reader = null;
+
+        String line;
+        String tempLine = "";
+
+        try{
+            if (!file.exists()) file.createNewFile();
+            reader = new FileReader(file);
+            BufferedReader bufReader = new BufferedReader(reader);
+            int lineCounter = 1;
+            while((line = (bufReader.readLine())) != null){
+                if((lineCounter%2)==0){
+
+                    tempLine = "";
+
+                    for(int i = 18; i < line.length(); i++){
+                        tempLine = tempLine + line.charAt(i);
+                    }
+                }
+                lineCounter++;
+            }
+
+        } catch(Exception e){e.printStackTrace();}
+
+        if(tempLine.equals("")){return;}
+
+        prevHash = tempLine;
+    }
 ///////////////////////// Proof Of Work Finish /////////////////////////
 
-
-
-
 ///////////////////////// Verification Start /////////////////////////
-
     //UPDATES LOCAL SAVE OF CLIENT ACCOUNT
-    public static void saveClientAccounts(String accountName, int balance){
+    public static void saveClientAccounts(String accountName, int balance, String tHash){
 
         File file = new File(PATH+accountName+".txt");
         FileWriter writer = null;
         try{
+            if (!file.exists()) file.createNewFile();
             writer = new FileWriter(file, true);
             writer.append("Account Name: " + accountName + "\n");
+            writer.append("Transaction Hash: " + tHash + "\n");
+            writer.append("Nonce: " + nonce + "\n");
             writer.append("Balance: " + balance + "\n");
             writer.close();
         }
@@ -173,11 +192,12 @@ public class Miner{
         String tempLine = "";
 
         try{
+            if (!file.exists()) file.createNewFile();
             reader = new FileReader(file);
             BufferedReader bufReader = new BufferedReader(reader);
             int lineCounter = 1;
             while((line = (bufReader.readLine())) != null){
-                if((lineCounter%2)==0){
+                if((lineCounter%4)==0){
 
                     tempLine = "";
 
@@ -188,12 +208,11 @@ public class Miner{
                 lineCounter++;
             }
 
-        } catch(Exception e){}
+        } catch(Exception e){e.printStackTrace();}
 
         if(tempLine.equals("")){return 0;}
 
         return Integer.parseInt(tempLine);
-
     }
 
     //COMPARES THE BALANCE COMMUNICATED BY THE CLIENT TO WHAT IS SAVED BY THE MINER
@@ -202,6 +221,5 @@ public class Miner{
         return (readFinalBalance(accountName) == allegedBalance);
 
     }
-
 //////////////////// Verification Finished ////////////////////////////
 }
