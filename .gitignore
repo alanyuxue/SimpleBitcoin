@@ -1,8 +1,5 @@
 .DS_Store
-AliceAccount.txt
-BobAccount.txt
-aliceAccountMiner.txt
-bobAccountMiner.txt
+.txt
 
 # IntelliJ project files
 .idea/
